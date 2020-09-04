@@ -26,7 +26,7 @@ class Alert:
                 return
 
     def _send_alert(self, duc_balance, warning_level=None, is_ok=False):
-        for chat in db.chats.find_all({}, {'id': 1}):
+        for chat in db.chats.find({}, {'id': 1}):
             chat_id = chat['id']
             if is_ok:
                 bot.send_message(chat_id, f'DUC balance is replenished: {duc_balance} DUC')

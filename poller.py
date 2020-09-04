@@ -8,7 +8,8 @@ bot = telebot.TeleBot(BOT_TOKEN)
 
 @bot.message_handler(commands=['start'])
 def start_handler(message):
-    db.chats.update({'id': message.chat.id}, {}, upsert=True)
+    data = {'id': message.chat.id}
+    db.chats.update(data, data, upsert=True)
     bot.reply_to(message, 'hello')
 
 
