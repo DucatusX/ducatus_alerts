@@ -21,7 +21,3 @@ def stop_handle(message):
 @bot.message_handler(commands=['ping'])
 def stop_handle(message):
     bot.reply_to(message, 'pong')
-
-
-if __name__ == '__main__':
-    bot.polling()

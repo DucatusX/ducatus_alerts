@@ -1,4 +1,5 @@
 import time
+import threading
 
 from db import db
 from poller import bot
@@ -33,7 +34,15 @@ class Alert:
                 bot.send_message(chat_id, f'WARNING: DUC balance is less than {warning_level}: {duc_balance} DUC')
 
 
+def start_polling():
+    while True:
+        bot.polling()
+
+
 if __name__ == '__main__':
+    poller = threading.Thread(target=start_polling)
+    poller.start()
+
     alert = Alert()
     while True:
         interface = DucatuscoreInterface()
