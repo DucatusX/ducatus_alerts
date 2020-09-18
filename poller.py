@@ -1,6 +1,7 @@
 import telebot
 
 from db import db
+from litecoin_rpc import DucatuscoreInterface
 from settings_local import BOT_TOKEN
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -17,6 +18,20 @@ def start_handler(message):
 def stop_handle(message):
     db.chats.remove({'id': message.chat.id})
     bot.reply_to(message, 'buy')
+
+
+@bot.message_handler(commands=['balance'])
+def balance_handle(message):
+    interface = DucatuscoreInterface()
+    duc_balance = interface.rpc.getbalance('')
+    bot.reply_to(message, f'{duc_balance} DUC')
+
+
+@bot.message_handler(commands=['address'])
+def address_handle(message):
+    interface = DucatuscoreInterface()
+    duc_address = interface.rpc.getaccountaddress('')
+    bot.reply_to(message, f'You can send DUC to this address {duc_address}')
 
 
 @bot.message_handler(commands=['ping'])
