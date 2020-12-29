@@ -1,7 +1,10 @@
 import telebot
 
 from db import db
-from litecoin_rpc import DucatuscoreInterface
+from settings_local import NETWORK_SETTINGS, DECIMALS
+from web3 import Web3, HTTPProvider
+w3 = Web3(HTTPProvider(NETWORK_SETTINGS['DUCX']['endpoint']))
+
 from settings_local import BOT_TOKEN
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -22,16 +25,15 @@ def stop_handle(message):
 
 @bot.message_handler(commands=['balance'])
 def balance_handle(message):
-    interface = DucatuscoreInterface()
-    duc_balance = interface.rpc.getbalance('')
-    bot.reply_to(message, f'{duc_balance} DUC')
+    ducx_balance = w3.eth.getBalance(NETWORK_SETTINGS['DUCX']['address'])
+    #ducx_balance = ducx_balance/DECIMALS
+    bot.reply_to(message, f'{ducx_balance/DECIMALS} DUCX')
 
 
 @bot.message_handler(commands=['address'])
 def address_handle(message):
-    interface = DucatuscoreInterface()
-    duc_address = interface.rpc.getaccountaddress('')
-    bot.reply_to(message, f'You can send DUC to this address {duc_address}')
+    ducx_address = NETWORK_SETTINGS['DUCX']['address']
+    bot.reply_to(message, f'You can send DUCX to this address {ducx_address}')
 
 
 @bot.message_handler(commands=['ping'])
