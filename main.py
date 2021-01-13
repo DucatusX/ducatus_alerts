@@ -1,53 +1,104 @@
 import time
+import telebot
 import threading
-
-from db import db
-from poller import bot
+import traceback
+import sys
+from web3 import Web3, HTTPProvider
+from pymongo import MongoClient
+from settings import BALANCE_CHECKER_TIMEOUT, NETWORKS, WARNING_LEVELS
 from litecoin_rpc import DucatuscoreInterface
-from settings_local import BALANCE_CHACKER_TIMEOUT
 
 
+class AlertsBot(threading.Thread):
+    def __init__(self, currency, bot_token):
+        super().__init__()
+        self.current_warning_level = 3
+        self.currency = currency
+        self.db = getattr(MongoClient('mongodb://localhost:27017/'), f'{currency}_alerts')
+        self.bot = telebot.TeleBot(bot_token)
+        self.balance = 0
 
-class Alert:
-    warning_levels = [10_000, 50_000, 100_000]
-    current_level = 3
+        @self.bot.message_handler(commands=['start'])
+        def start_handler(message):
+            data = {'id': message.chat.id}
+            self.db.chats.update(data, data, upsert=True)
+            self.bot.reply_to(message, 'Hello!')
 
-    def check_balance(self, duc_balance):
-        if duc_balance > self.warning_levels[-1]:
-            if self.current_level != 3:
-                self.current_level = 3
-                self._send_alert(duc_balance, is_ok=True)
-            return
+        @self.bot.message_handler(commands=['stop'])
+        def stop_handle(message):
+            self.db.chats.remove({'id': message.chat.id})
+            self.bot.reply_to(message, 'Bye!')
 
-        for i, warning_level in enumerate(self.warning_levels):
-            if duc_balance < warning_level and self.current_level > i:
-                self.current_level = i
-                self._send_alert(duc_balance, warning_level=warning_level)
-                return
+        @self.bot.message_handler(commands=['balance'])
+        def balance_handle(message):
+            getattr(self, f'update_{self.currency}_balance')()
+            self.bot.reply_to(message, f'{self.balance} {self.currency}')
 
-    def _send_alert(self, duc_balance, warning_level=None, is_ok=False):
-        for chat in db.chats.find({}, {'id': 1}):
+        @self.bot.message_handler(commands=['address'])
+        def address_handle(message):
+            address = getattr(self, f'{self.currency}_address')
+            self.bot.reply_to(message, address)
+
+        @self.bot.message_handler(commands=['ping'])
+        def stop_handle(message):
+            self.bot.reply_to(message, 'Pong')
+
+    def start_polling(self):
+        while True:
+            try:
+                self.bot.polling(none_stop=True)
+            except Exception:
+                print('\n'.join(traceback.format_exception(*sys.exc_info())), flush=True)
+                time.sleep(15)
+
+    def send_alert(self, is_ok=False):
+        for chat in self.db.chats.find({}, {'id': 1}):
             chat_id = chat['id']
             if is_ok:
-                bot.send_message(chat_id, f'DUC balance is replenished: {duc_balance} DUC')
+                self.bot.send_message(chat_id, f'{self.currency} balance replenished: {self.balance} {self.currency}')
             else:
-                bot.send_message(chat_id, f'WARNING: DUC balance is less than {warning_level}: {duc_balance} DUC')
+                self.bot.send_message(chat_id, f'WARNING! {self.currency} balance is less than '
+                                               f'{WARNING_LEVELS[self.current_warning_level]}: '
+                                               f'{self.balance} {self.currency}')
 
+    @property
+    def DUC_address(self):
+        return DucatuscoreInterface().interface.rpc.getaccountaddress('')
 
-def start_polling():
-    while True:
-        bot.polling()
+    @property
+    def DUCX_address(self):
+        return NETWORKS[self.currency]['address']
+
+    def update_DUC_balance(self):
+        self.balance = DucatuscoreInterface().rpc.getbalance('')
+
+    def update_DUCX_balance(self):
+        w3 = Web3(HTTPProvider(NETWORKS[self.currency]['endpoint']))
+        raw_balance = w3.eth.getBalance(w3.toChecksumAddress(self.address))
+        self.balance = raw_balance / NETWORKS[self.currency]['decimals']
+
+    def check_balance(self):
+        if self.balance > WARNING_LEVELS[-1]:
+            levels_count = len(WARNING_LEVELS)
+            if self.current_warning_level != levels_count:
+                self.current_warning_level = levels_count
+                self.send_alert(is_ok=True)
+            return
+
+        for i, warning_level in enumerate(WARNING_LEVELS):
+            if self.balance < warning_level and self.current_warning_level > i:
+                self.current_warning_level = i
+                self.send_alert()
+                return
+
+    def run(self):
+        threading.Thread(target=self.start_polling).start()
+        while True:
+            getattr(self, f'update_{self.currency}_balance')()
+            self.check_balance()
+            time.sleep(BALANCE_CHECKER_TIMEOUT)
 
 
 if __name__ == '__main__':
-    poller = threading.Thread(target=start_polling)
-    poller.start()
-
-    alert = Alert()
-    while True:
-        interface = DucatuscoreInterface()
-        duc_balance = interface.rpc.getbalance('')
-
-        alert.check_balance(duc_balance)
-
-        time.sleep(BALANCE_CHACKER_TIMEOUT)
+    for currency, info in NETWORKS.items():
+        AlertsBot(currency, info['bot_token']).start()
