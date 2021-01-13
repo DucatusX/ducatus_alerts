@@ -74,7 +74,8 @@ class AlertsBot(threading.Thread):
 
     def update_DUCX_balance(self):
         w3 = Web3(HTTPProvider(NETWORKS[self.currency]['endpoint']))
-        raw_balance = w3.eth.getBalance(w3.toChecksumAddress(self.address))
+        address = getattr(self, f'{self.currency}_address')
+        raw_balance = w3.eth.getBalance(w3.toChecksumAddress(address))
         self.balance = raw_balance / NETWORKS[self.currency]['decimals']
 
     def check_balance(self):
