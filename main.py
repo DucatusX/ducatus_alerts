@@ -96,7 +96,7 @@ class AlertsBot(threading.Thread):
         threading.Thread(target=self.start_polling).start()
         while True:
             getattr(self, f'update_{self.currency}_balance')()
-            print(f'{currency} balance updated: {self.balance}', flush=True)
+            print(f'{self.currency} balance updated: {self.balance}', flush=True)
             self.check_balance()
             time.sleep(BALANCE_CHECKER_TIMEOUT)
 
