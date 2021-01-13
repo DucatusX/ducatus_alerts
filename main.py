@@ -63,7 +63,7 @@ class AlertsBot(threading.Thread):
 
     @property
     def DUC_address(self):
-        return DucatuscoreInterface().interface.rpc.getaccountaddress('')
+        return DucatuscoreInterface().rpc.getaccountaddress('')
 
     @property
     def DUCX_address(self):
