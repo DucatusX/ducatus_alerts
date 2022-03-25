@@ -2,8 +2,6 @@ import logging.handlers
 import time
 import telebot
 import threading
-import traceback
-import sys
 
 import requests
 from web3 import Web3, HTTPProvider
@@ -69,39 +67,31 @@ class AlertsBot(threading.Thread):
         while True:
             try:
                 self.bot.polling(none_stop=True)
-            except Exception:
-                self.logger.exception('\n'.join(traceback.format_exception(*sys.exc_info())))
+            except Exception as exception:
+                self.logger.exception(exception, exc_info=True)
                 time.sleep(15)
 
     def send_alert(self, is_ok=False):
         self.logger.warning("Trying to send alerts")
         for chat in self.db.chats.find({}, {'id': 1}):
             chat_id = chat['id']
+            message = 'WARNING! {currency} balance is less than {level}: {balance} {currency}'.format(
+                currency=self.currency,
+                balance=self.balance,
+                level=WARNING_LEVELS[self.current_warning_level]
+            )
             if is_ok:
-                try:
-                    self.bot.send_message(
-                        chat_id,
-                        f'{self.currency} balance replenished: {self.balance} {self.currency}'
-                    )
-                except (
-                        ConnectionAbortedError,
-                        ConnectionResetError,
-                        ConnectionRefusedError,
-                        ConnectionError,
-                        requests.exceptions.RequestException) as exception:
-                    self.logger.exception(exception, exc_info=True)
-            else:
-                try:
-                    self.bot.send_message(chat_id, f'WARNING! {self.currency} balance is less than '
-                                                   f'{WARNING_LEVELS[self.current_warning_level]}: '
-                                                   f'{self.balance} {self.currency}')
-                except (
-                        ConnectionAbortedError,
-                        ConnectionResetError,
-                        ConnectionRefusedError,
-                        ConnectionError,
-                        requests.exceptions.RequestException) as exception:
-                    self.logger.exception(exception, exc_info=True)
+                message = f'{self.currency} balance replenished: {self.balance} {self.currency}'
+            try:
+                self.bot.send_message(chat_id, message)
+            except (
+                    ConnectionAbortedError,
+                    ConnectionResetError,
+                    ConnectionRefusedError,
+                    ConnectionError,
+                    requests.exceptions.RequestException) as exception:
+                self.logger.exception(exception, exc_info=True)
+
 
     @property
     def DUC_address(self):
