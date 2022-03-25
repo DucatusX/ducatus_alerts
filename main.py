@@ -1,10 +1,14 @@
+import logging.handlers
 import time
 import telebot
 import threading
 import traceback
 import sys
+
+import requests
 from web3 import Web3, HTTPProvider
 from pymongo import MongoClient
+
 from settings import BALANCE_CHECKER_TIMEOUT, NETWORKS, WARNING_LEVELS
 from litecoin_rpc import DucatuscoreInterface
 
@@ -14,6 +18,7 @@ class AlertsBot(threading.Thread):
         super().__init__()
         self.current_warning_level = 3
         self.currency = currency
+        self.logger = self.set_logger()
         self.db = getattr(MongoClient('mongodb://localhost:27017/'), f'{currency}_alerts')
         self.bot = telebot.TeleBot(bot_token)
         self.balance = 0
@@ -43,23 +48,60 @@ class AlertsBot(threading.Thread):
         def stop_handle(message):
             self.bot.reply_to(message, 'Pong')
 
+    def set_logger(self):
+        logger = logging.getLogger(
+            '{currency}_logger'.format(currency=self.currency)
+        )
+        custom_formatter = logging.Formatter(
+            fmt='%(levelname)-10s | %(asctime)s | %(name)-18s | %(message)s'
+        )
+        logfile_name = '{currency}_alerts.log'.format(currency=self.currency)
+        custom_handler = logging.handlers.TimedRotatingFileHandler(
+            filename=logfile_name,
+            when='D',
+            interval=3)
+        custom_handler.setFormatter(custom_formatter)
+        logger.addHandler(custom_handler)
+        logger.level = logging.INFO
+        return logger
+
     def start_polling(self):
         while True:
             try:
                 self.bot.polling(none_stop=True)
             except Exception:
-                print('\n'.join(traceback.format_exception(*sys.exc_info())), flush=True)
+                self.logger.exception('\n'.join(traceback.format_exception(*sys.exc_info())))
                 time.sleep(15)
 
     def send_alert(self, is_ok=False):
+        self.logger.warning("Trying to send alerts")
         for chat in self.db.chats.find({}, {'id': 1}):
             chat_id = chat['id']
             if is_ok:
-                self.bot.send_message(chat_id, f'{self.currency} balance replenished: {self.balance} {self.currency}')
+                try:
+                    self.bot.send_message(
+                        chat_id,
+                        f'{self.currency} balance replenished: {self.balance} {self.currency}'
+                    )
+                except (
+                        ConnectionAbortedError,
+                        ConnectionResetError,
+                        ConnectionRefusedError,
+                        ConnectionError,
+                        requests.exceptions.RequestException) as exception:
+                    self.logger.exception(exception, exc_info=True)
             else:
-                self.bot.send_message(chat_id, f'WARNING! {self.currency} balance is less than '
-                                               f'{WARNING_LEVELS[self.current_warning_level]}: '
-                                               f'{self.balance} {self.currency}')
+                try:
+                    self.bot.send_message(chat_id, f'WARNING! {self.currency} balance is less than '
+                                                   f'{WARNING_LEVELS[self.current_warning_level]}: '
+                                                   f'{self.balance} {self.currency}')
+                except (
+                        ConnectionAbortedError,
+                        ConnectionResetError,
+                        ConnectionRefusedError,
+                        ConnectionError,
+                        requests.exceptions.RequestException) as exception:
+                    self.logger.exception(exception, exc_info=True)
 
     @property
     def DUC_address(self):
@@ -86,6 +128,10 @@ class AlertsBot(threading.Thread):
                 self.send_alert(is_ok=True)
             return
 
+        self.logger.warning(
+            'WARNING level reached! Current balance is {balance}'.format(balance=self.balance)
+        )
+
         for i, warning_level in enumerate(WARNING_LEVELS):
             if self.balance < warning_level and self.current_warning_level > i:
                 self.current_warning_level = i
@@ -96,7 +142,7 @@ class AlertsBot(threading.Thread):
         threading.Thread(target=self.start_polling).start()
         while True:
             getattr(self, f'update_{self.currency}_balance')()
-            print(f'{self.currency} balance updated: {self.balance}', flush=True)
+            self.logger.info(f'{self.currency} balance updated: {self.balance}')
             self.check_balance()
             time.sleep(BALANCE_CHECKER_TIMEOUT)
 
