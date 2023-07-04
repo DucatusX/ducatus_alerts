@@ -124,3 +124,8 @@ gunicorn.conf.py
 db.sqlite3
 .vscode/
 node_modules/
+.env
+dumps/
+*.tar.gz
+.docker/
+config.yaml

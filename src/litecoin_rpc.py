@@ -1,5 +1,5 @@
 from bitcoinrpc.authproxy import AuthServiceProxy
-from settings import NETWORKS
+from settings import settings, NetworkSettings
 
 
 class DucatuscoreInterfaceException(Exception):
@@ -8,17 +8,17 @@ class DucatuscoreInterfaceException(Exception):
 
 class DucatuscoreInterface:
     def __init__(self):
-        self.settings = NETWORKS['DUC']
+        self.settings: NetworkSettings = [network for network in settings.NETWORKS if network.name == 'DUC'][0]
         self.setup_endpoint()
         self.rpc = AuthServiceProxy(self.endpoint)
         self.check_connection()
 
     def setup_endpoint(self):
         self.endpoint = 'http://{user}:{pwd}@{host}:{port}'.format(
-            user=self.settings['user'],
-            pwd=self.settings['password'],
-            host=self.settings['host'],
-            port=self.settings['port']
+            user=self.settings.user,
+            pwd=self.settings.password,
+            host=self.settings.host,
+            port=self.settings.port
         )
         return
 

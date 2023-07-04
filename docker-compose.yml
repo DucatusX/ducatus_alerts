@@ -1,0 +1,25 @@
+version: "3.7"
+services:
+  db:
+    image: mongo:5.0.19-rc0
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    volumes:
+      - ./dumps/:/dumps/
+      - ./.docker/mongodb:/data/db
+  app:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    env_file:
+      - ./.env
+    volumes:
+      - ./src/:/code/src/
+    restart: unless-stopped
+    networks:
+      ducatus_alerts_net:
+    container_name: ducatus_alerts_main
+
+networks:
+  ducatus_alerts_net:

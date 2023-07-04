@@ -1,0 +1,21 @@
+
+NETWORKS:
+  DUC:
+    host: 111.222.333.44
+    port: 1234
+    user: user
+    password: password
+    bot_token: token:token
+      # bot_token: 1545857358:AAGjEEBSptbGntsBZLJXbuNgHoBEEgVtlBU
+  DUCX:
+    endpoint: http://111.222.333.44
+    address: 0xAaBbCc
+    bot_token: token:token
+    decimals: 18
+
+BALANCE_CHECKER_TIMEOUT: 10
+
+WARNING_LEVELS:
+  - 10000
+  - 100000
+  - 700000

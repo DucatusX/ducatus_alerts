@@ -7,7 +7,7 @@ import requests
 from web3 import Web3, HTTPProvider
 from pymongo import MongoClient
 
-from settings import BALANCE_CHECKER_TIMEOUT, NETWORKS, WARNING_LEVELS
+from settings import settings, NetworkSettings
 from litecoin_rpc import DucatuscoreInterface
 
 
@@ -15,9 +15,9 @@ class AlertsBot(threading.Thread):
     def __init__(self, currency, bot_token):
         super().__init__()
         self.current_warning_level = 3
-        self.currency = currency
+        self.currency: NetworkSettings = currency
         self.logger = self.set_logger()
-        self.db = getattr(MongoClient('mongodb://localhost:27017/'), f'{currency}_alerts')
+        self.db = getattr(MongoClient('mongodb://db:27017/'), f'{currency.name}_alerts')
         self.bot = telebot.TeleBot(bot_token)
         self.balance = 0
 
@@ -34,12 +34,12 @@ class AlertsBot(threading.Thread):
 
         @self.bot.message_handler(commands=['balance'])
         def balance_handle(message):
-            getattr(self, f'update_{self.currency}_balance')()
-            self.bot.reply_to(message, f'{self.balance} {self.currency}')
+            getattr(self, f'update_{self.currency.name}_balance')()
+            self.bot.reply_to(message, f'{self.balance} {self.currency.name}')
 
         @self.bot.message_handler(commands=['address'])
         def address_handle(message):
-            address = getattr(self, f'{self.currency}_address')
+            address = getattr(self, f'{self.currency.name}_address')
             self.bot.reply_to(message, address)
 
         @self.bot.message_handler(commands=['ping'])
@@ -48,12 +48,12 @@ class AlertsBot(threading.Thread):
 
     def set_logger(self):
         logger = logging.getLogger(
-            '{currency}_logger'.format(currency=self.currency)
+            '{currency}_logger'.format(currency=self.currency.name)
         )
         custom_formatter = logging.Formatter(
             fmt='%(levelname)-10s | %(asctime)s | %(name)-18s | %(message)s'
         )
-        logfile_name = '{currency}_alerts.log'.format(currency=self.currency)
+        logfile_name = '{currency}_alerts.log'.format(currency=self.currency.name)
         custom_handler = logging.handlers.TimedRotatingFileHandler(
             filename=logfile_name,
             when='D',
@@ -76,12 +76,12 @@ class AlertsBot(threading.Thread):
         for chat in self.db.chats.find({}, {'id': 1}):
             chat_id = chat['id']
             message = 'WARNING! {currency} balance is less than {level}: {balance} {currency}'.format(
-                currency=self.currency,
+                currency=self.currency.name,
                 balance=self.balance,
-                level=WARNING_LEVELS[self.current_warning_level]
+                level=settings.WARNING_LEVELS[self.current_warning_level]
             )
             if is_ok:
-                message = f'{self.currency} balance replenished: {self.balance} {self.currency}'
+                message = f'{self.currency.name} balance replenished: {self.balance} {self.currency.name}'
             try:
                 self.bot.send_message(chat_id, message)
             except (
@@ -99,20 +99,29 @@ class AlertsBot(threading.Thread):
 
     @property
     def DUCX_address(self):
-        return NETWORKS[self.currency]['address']
+        return self.DUCX_settings.address
+        
+    
+    @property
+    def DUCX_settings(self):
+        return [network for network in settings.NETWORKS if network.name == 'DUCX'][0]
+    
+    @property
+    def DUC_settings(self):
+        return [network for network in settings.NETWORKS if network.name == 'DUC'][0]
 
     def update_DUC_balance(self):
         self.balance = DucatuscoreInterface().rpc.getbalance('')
 
     def update_DUCX_balance(self):
-        w3 = Web3(HTTPProvider(NETWORKS[self.currency]['endpoint']))
-        address = getattr(self, f'{self.currency}_address')
-        raw_balance = w3.eth.getBalance(w3.toChecksumAddress(address))
-        self.balance = raw_balance / NETWORKS[self.currency]['decimals']
+        w3 = Web3(HTTPProvider(self.DUCX_settings.endpoint))
+        
+        raw_balance = w3.eth.get_balance(w3.to_checksum_address(self.DUCX_address))
+        self.balance = raw_balance / 10 ** self.DUCX_settings.decimals 
 
     def check_balance(self):
-        if self.balance > WARNING_LEVELS[-1]:
-            levels_count = len(WARNING_LEVELS)
+        if self.balance > settings.WARNING_LEVELS[-1]:
+            levels_count = len(settings.WARNING_LEVELS)
             if self.current_warning_level != levels_count:
                 self.current_warning_level = levels_count
                 self.send_alert(is_ok=True)
@@ -122,7 +131,7 @@ class AlertsBot(threading.Thread):
             'WARNING level reached! Current balance is {balance}'.format(balance=self.balance)
         )
 
-        for i, warning_level in enumerate(WARNING_LEVELS):
+        for i, warning_level in enumerate(settings.WARNING_LEVELS):
             if self.balance < warning_level and self.current_warning_level > i:
                 self.current_warning_level = i
                 self.send_alert()
@@ -131,13 +140,14 @@ class AlertsBot(threading.Thread):
     def run(self):
         threading.Thread(target=self.start_polling).start()
         while True:
-            getattr(self, f'update_{self.currency}_balance')()
-            self.logger.info(f'{self.currency} balance updated: {self.balance}')
+            getattr(self, f'update_{self.currency.name}_balance')()
+            self.logger.info(f'{self.currency.name} balance updated: {self.balance}')
             self.check_balance()
-            time.sleep(BALANCE_CHECKER_TIMEOUT)
+            time.sleep(settings.BALANCE_CHECKER_TIMEOUT)
 
 
 if __name__ == '__main__':
-    for currency, info in NETWORKS.items():
-        AlertsBot(currency, info['bot_token']).start()
-        print(f'{currency} alerts bot is on!', flush=True)
+    currencies = settings.NETWORKS
+    for currency in currencies:
+        AlertsBot(currency, currency.bot_token).start()
+        print(f'{currency.name} alerts bot is on!', flush=True)
