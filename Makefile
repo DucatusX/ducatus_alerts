@@ -1,5 +1,5 @@
 include .env
-compose = docker compose
+compose = docker-compose
 lines?=all
 
 
