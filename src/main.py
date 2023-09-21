@@ -53,7 +53,7 @@ class AlertsBot(threading.Thread):
         custom_formatter = logging.Formatter(
             fmt='%(levelname)-10s | %(asctime)s | %(name)-18s | %(message)s'
         )
-        logfile_name = '{currency}_alerts.log'.format(currency=self.currency.name)
+        logfile_name = 'logs/{currency}_alerts.log'.format(currency=self.currency.name)
         custom_handler = logging.handlers.TimedRotatingFileHandler(
             filename=logfile_name,
             when='D',
