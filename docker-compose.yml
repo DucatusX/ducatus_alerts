@@ -10,6 +10,8 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
+    networks:
+      ducatus_alerts_net:
     volumes:
       - ./dumps/:/dumps/
       - ./.docker/mongodb:/data/db
