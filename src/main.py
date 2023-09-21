@@ -87,12 +87,16 @@ class AlertsBot(threading.Thread):
                 message = f'{self.currency.name} balance replenished: {self.balance} {self.currency.name}'
             try:
                 self.bot.send_message(chat_id, message)
+            except telebot.apihelper.ApiTelegramException:
+                self.db.chats.remove({'id': chat_id})
+                self.logger.info(f"Removed user {chat_id} because they blocked bot")
             except (
                     ConnectionAbortedError,
                     ConnectionResetError,
                     ConnectionRefusedError,
                     ConnectionError,
-                    requests.exceptions.RequestException) as exception:
+                    requests.exceptions.RequestException,
+            ) as exception:
                 self.logger.exception(exception, exc_info=True)
 
 
