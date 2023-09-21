@@ -5,6 +5,13 @@ services:
     restart: unless-stopped
     env_file:
       - ./.env
+    healthcheck:
+      test: echo 'db.runCommand({serverStatus:1}).ok' | mongo admin -u $MONGO_INITDB_ROOT_USERNAME -p $MONGO_INITDB_ROOT_PASSWORD --quiet | grep 1
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      ducatus_alerts_net:
     volumes:
       - ./dumps/:/dumps/
       - ./.docker/mongodb:/data/db
@@ -16,7 +23,11 @@ services:
       - ./.env
     volumes:
       - ./src/:/code/src/
+      - ./logs/:/code/logs/
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       ducatus_alerts_net:
     container_name: ducatus_alerts_main

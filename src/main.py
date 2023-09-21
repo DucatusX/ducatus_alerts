@@ -14,7 +14,7 @@ from litecoin_rpc import DucatuscoreInterface
 class AlertsBot(threading.Thread):
     def __init__(self, currency, bot_token):
         super().__init__()
-        self.current_warning_level = 3
+        self.current_warning_level = 4
         self.currency: NetworkSettings = currency
         self.logger = self.set_logger()
         self.db = getattr(MongoClient('mongodb://db:27017/'), f'{currency.name}_alerts')
@@ -53,7 +53,7 @@ class AlertsBot(threading.Thread):
         custom_formatter = logging.Formatter(
             fmt='%(levelname)-10s | %(asctime)s | %(name)-18s | %(message)s'
         )
-        logfile_name = '{currency}_alerts.log'.format(currency=self.currency.name)
+        logfile_name = 'logs/{currency}_alerts.log'.format(currency=self.currency.name)
         custom_handler = logging.handlers.TimedRotatingFileHandler(
             filename=logfile_name,
             when='D',
@@ -69,7 +69,7 @@ class AlertsBot(threading.Thread):
                 self.bot.polling(none_stop=True)
             except Exception as exception:
                 self.logger.exception(exception, exc_info=True)
-                time.sleep(15)
+                time.sleep(30)
 
     def send_alert(self, is_ok=False):
         self.logger.warning("Trying to send alerts")
@@ -124,7 +124,11 @@ class AlertsBot(threading.Thread):
             levels_count = len(settings.WARNING_LEVELS)
             if self.current_warning_level != levels_count:
                 self.current_warning_level = levels_count
-                self.send_alert(is_ok=True)
+                try:
+                    self.send_alert(is_ok=True)
+                except Exception as e:
+                    self.logger.warning(e)
+                    
             return
 
         self.logger.warning(
