@@ -18,9 +18,9 @@ class AlertsBot(threading.Thread):
         self.current_warning_level = 4
         self.currency: NetworkSettings = currency
         self.logger = self.set_logger()
-        mongodb_user = os.getenv("MONGO_INITDB_ROOT_USERNAME")
-        mongodb_password = os.getenv("MONGO_INITDB_ROOT_PASSWORD")
-        self.db = getattr(MongoClient('mongodb://db:27017/'), f'{currency.name}_alerts')
+        db_user = os.getenv("MONGO_INITDB_ROOT_USERNAME")
+        db_password = os.getenv("MONGO_INITDB_ROOT_PASSWORD")
+        self.db = getattr(MongoClient(f'mongodb://{db_user}:{db_password}db:27017/'), f'{currency.name}_alerts')
         self.bot = telebot.TeleBot(bot_token)
         self.balance = 0
 
