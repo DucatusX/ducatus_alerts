@@ -69,7 +69,7 @@ class AlertsBot(threading.Thread):
     def start_polling(self):
         while True:
             try:
-                self.bot.polling(none_stop=True)
+                self.bot.infinity_polling()
             except Exception as exception:
                 self.logger.exception(exception, exc_info=True)
                 time.sleep(30)
