@@ -72,7 +72,6 @@ class AlertsBot(threading.Thread):
                 self.bot.infinity_polling()
             except Exception as exception:
                 self.logger.exception(exception, exc_info=True)
-                time.sleep(30)
 
     def send_alert(self, is_ok=False):
         self.logger.warning("Trying to send alerts")
