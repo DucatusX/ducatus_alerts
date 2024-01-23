@@ -21,7 +21,7 @@ class CurrencyService:
         return self.config.address
 
     def get_address(self):
-        return getattr(self, f"get_{self.name}_address")()
+        return getattr(self, f"get_{self.name}_address")
 
     def get_logger(self):
         logger = logging.getLogger(f'{self.name}_logger')
