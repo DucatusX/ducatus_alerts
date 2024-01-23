@@ -52,7 +52,7 @@ class Bot(threading.Thread):
 
     def get_all_chats(self):
         redis_ = RedisClient()
-        redis_keys = redis_.connection.keys('user_*')
+        redis_keys = redis_.connection.keys(f'user_{self.name}_*')
         chats = []
         for rk in redis_keys:
             chat_id = rk.split('_')[-1]
@@ -62,13 +62,13 @@ class Bot(threading.Thread):
     def remove_chat(self, user_id):
         try:
             redis_ = RedisClient()
-            redis_.connection.delete(f"user_{user_id}")
+            redis_.connection.delete(f"user_{self.name}_{user_id}")
         except Exception as e:
             pass
 
     def add_chat(self, user_id):
         redis_ = RedisClient()
-        redis_.connection.set(f"user_{user_id}", '1')
+        redis_.connection.set(f"user_{self.name}_{user_id}", '1')
 
 
     def send_alert(self, balance: Any, warning_level: Optional[int] = None, is_ok=True):
