@@ -1,3 +1,4 @@
+redis==3.5.3
 pymongo==3.11.2
 pyrsistent==0.17.3
 pyTelegramBotAPI==4.14.0 

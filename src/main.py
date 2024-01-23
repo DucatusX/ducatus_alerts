@@ -9,7 +9,7 @@ from web3 import Web3, HTTPProvider
 from pymongo import MongoClient
 
 from settings import settings, NetworkSettings
-from litecoin_rpc import DucatuscoreInterface
+from src.utils.litecoin_rpc import DucatuscoreInterface
 
 
 class AlertsBot(threading.Thread):
@@ -17,54 +17,12 @@ class AlertsBot(threading.Thread):
         super().__init__()
         self.current_warning_level = 4
         self.currency: NetworkSettings = currency
-        self.logger = self.set_logger()
+        self.logger = self.get_logger()
         db_user = os.getenv("MONGO_INITDB_ROOT_USERNAME")
         db_password = os.getenv("MONGO_INITDB_ROOT_PASSWORD")
         self.db = getattr(MongoClient(f'mongodb://{db_user}:{db_password}@db:27017/'), f'{currency.name}_alerts')
         self.bot = telebot.TeleBot(bot_token)
         self.balance = 0
-
-        @self.bot.message_handler(commands=['start'])
-        def start_handler(message):
-            data = {'id': message.chat.id}
-            self.db.chats.update(data, data, upsert=True)
-            self.bot.reply_to(message, 'Hello!')
-
-        @self.bot.message_handler(commands=['stop'])
-        def stop_handle(message):
-            self.db.chats.remove({'id': message.chat.id})
-            self.bot.reply_to(message, 'Bye!')
-
-        @self.bot.message_handler(commands=['balance'])
-        def balance_handle(message):
-            getattr(self, f'update_{self.currency.name}_balance')()
-            self.bot.reply_to(message, f'{self.balance} {self.currency.name}')
-
-        @self.bot.message_handler(commands=['address'])
-        def address_handle(message):
-            address = getattr(self, f'{self.currency.name}_address')
-            self.bot.reply_to(message, address)
-
-        @self.bot.message_handler(commands=['ping'])
-        def stop_handle(message):
-            self.bot.reply_to(message, 'Pong')
-
-    def set_logger(self):
-        logger = logging.getLogger(
-            '{currency}_logger'.format(currency=self.currency.name)
-        )
-        custom_formatter = logging.Formatter(
-            fmt='%(levelname)-10s | %(asctime)s | %(name)-18s | %(message)s'
-        )
-        logfile_name = 'logs/{currency}_alerts.log'.format(currency=self.currency.name)
-        custom_handler = logging.handlers.TimedRotatingFileHandler(
-            filename=logfile_name,
-            when='D',
-            interval=3)
-        custom_handler.setFormatter(custom_formatter)
-        logger.addHandler(custom_handler)
-        logger.level = logging.INFO
-        return logger
 
     def start_polling(self):
         while True:
