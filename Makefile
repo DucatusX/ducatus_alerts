@@ -21,11 +21,11 @@ down:
 admin:
 	sudo $(compose) exec app ./manage.py createsuperuser
 bot-build:
-	sudo $(compose) up --build -d app
+	sudo $(compose) up --build -d bot
 bot-logs:
-	sudo $(compose) logs --tail $(lines)  -f app
+	sudo $(compose) logs --tail $(lines)  -f bot
 bot-stop:
-	sudo $(compose) stop app
+	sudo $(compose) stop bot
 
 checker-build:
 	sudo $(compose) up --build -d checker
