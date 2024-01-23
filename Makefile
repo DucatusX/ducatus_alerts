@@ -20,12 +20,19 @@ down:
 
 admin:
 	sudo $(compose) exec app ./manage.py createsuperuser
-app-build:
+bot-build:
 	sudo $(compose) up --build -d app
-app-logs:
+bot-logs:
 	sudo $(compose) logs --tail $(lines)  -f app
-app-stop:
+bot-stop:
 	sudo $(compose) stop app
+
+checker-build:
+	sudo $(compose) up --build -d checker
+checker-logs:
+	sudo $(compose) logs --tail $(lines)  -f checker
+checker-stop:
+	sudo $(compose) stop checker
 
 mongo-shell:
 	sudo $(compose) exec db mongo
