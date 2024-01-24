@@ -42,6 +42,7 @@ class CurrencyService:
         balance = getattr(self, f"fetch_balance_{self.name}")()
         redis_ = RedisClient()
         redis_.connection.set(f"balance_{self.name}", balance)
+        return balance
 
     def fetch_balance_DUC(self):
         balance = str(DucatuscoreInterface().rpc.getbalance(''))
@@ -57,6 +58,8 @@ class CurrencyService:
     def get_saved_balance(self):
         redis_ = RedisClient()
         balance_str = redis_.connection.get(f"balance_{self.name}")
+        if not balance_str:
+            balance = self.update_balance()
         return float(balance_str)
 
     def set_current_warning_level(self, warning_level: int):
