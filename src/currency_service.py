@@ -70,7 +70,7 @@ class CurrencyService:
 
     def get_current_warning_level(self):
         redis_ = RedisClient()
-        level = redis_.connection.set(f"warning_level_{self.name}")
+        level = redis_.connection.get(f"warning_level_{self.name}")
         return int(level)
 
 
