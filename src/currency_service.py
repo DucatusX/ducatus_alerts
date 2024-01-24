@@ -56,7 +56,12 @@ class CurrencyService:
 
     def get_saved_balance(self):
         redis_ = RedisClient()
-        return redis_.connection.get(f"balance_{self.name}")
+        balance_str = redis_.connection.get(f"balance_{self.name}")
+        if self.name == 'DUCX':
+            balance = int(balance_str)
+        else:
+            balance = float(balance_str)
+        return balance
 
     def set_current_warning_level(self, warning_level: int):
         redis_ = RedisClient()

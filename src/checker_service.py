@@ -16,7 +16,7 @@ class BalanceCheckerService(threading.Thread):
 
     def check_balance(self):
         balance = self.service.get_saved_balance()
-        if int(balance) > config.WARNING_LEVELS[-1]:
+        if balance > config.WARNING_LEVELS[-1]:
             levels_count = len(config.WARNING_LEVELS)
             if self.service.get_current_warning_level() != levels_count:
                 warning_level = levels_count
