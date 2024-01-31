@@ -10,3 +10,4 @@ marshmallow==3.14.1
 marshmallow-dataclass==8.5.3
 marshmallow-enum==1.5.1
 PyYAML==6.0
+tenacity==8.2.3

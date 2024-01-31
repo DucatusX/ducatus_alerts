@@ -2,8 +2,11 @@ from src.utils.litecoin_rpc import DucatuscoreInterface
 from web3 import Web3, HTTPProvider
 import logging
 import logging.handlers
+from tenacity import retry, stop_after_attempt, wait_fixed
+
 from src.settings import config, NetworkSettings
 from src.utils.redis_utils import RedisClient
+
 
 class CurrencyService:
 
@@ -44,10 +47,12 @@ class CurrencyService:
         redis_.connection.set(f"balance_{self.name}", balance)
         return balance
 
+    @retry(stop=stop_after_attempt(10), wait=wait_fixed(2))
     def fetch_balance_DUC(self):
         balance = str(DucatuscoreInterface().rpc.getbalance(''))
         return balance
 
+    @retry(stop=stop_after_attempt(10), wait=wait_fixed(2))
     def fetch_balance_DUCX(self):
         w3 = Web3(HTTPProvider(self.config.endpoint))
 
