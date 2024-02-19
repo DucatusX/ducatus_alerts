@@ -49,7 +49,7 @@ class CurrencyService:
 
     @retry(stop=stop_after_attempt(10), wait=wait_fixed(2))
     def fetch_balance_DUC(self):
-        balance = str(DucatuscoreInterface().rpc.getbalance(''))
+        balance = str(DucatuscoreInterface().get_wallet_balance())
         return balance
 
     @retry(stop=stop_after_attempt(10), wait=wait_fixed(2))
