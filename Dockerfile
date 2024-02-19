@@ -13,6 +13,3 @@ RUN pip install -r requirements.txt
 
 COPY . /code/
 
-COPY /start.sh /
-RUN chmod +x /start.sh
-ENTRYPOINT ["/start.sh"]

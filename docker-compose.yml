@@ -23,6 +23,7 @@ services:
     networks:
       ducatus_alerts_net:
     container_name: ducatus_alerts_bot
+    command: python3 start_bot_polling.py
   checker:
     build:
       context: .
@@ -38,7 +39,7 @@ services:
     networks:
       ducatus_alerts_net:
     container_name: ducatus_alerts_checker
-    command: ./start_checkers.sh
+    command: python3 start_checkers.py
 
 networks:
   ducatus_alerts_net:
