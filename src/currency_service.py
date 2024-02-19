@@ -41,10 +41,12 @@ class CurrencyService:
         logger.level = logging.INFO
         return logger
 
+    @retry(stop=stop_after_attempt(10), wait=wait_fixed(2))
     def update_balance(self):
         balance = getattr(self, f"fetch_balance_{self.name}")()
         redis_ = RedisClient()
-        redis_.connection.set(f"balance_{self.name}", balance)
+        redis_.connection.set(f"balance_{self.name}", str(balance))
+        self.logger.info(f"Balance fetched for {self.name}: {str(balance)}")
         return balance
 
     @retry(stop=stop_after_attempt(10), wait=wait_fixed(2))
